@@ -10,8 +10,8 @@ import terminalio
 from adafruit_display_text import label
 from kmk.extensions import Extension
 
-DISPLAY_OFFSET = 4  # Used to calculate a new zero level since SSD1306 is clipped.
-
+DISPLAY_OFFSET_X = 2  
+DISPLAY_OFFSET_Y = 4
 
 class OledEntryType:
     TXT = 0
@@ -55,13 +55,16 @@ class Oled(Extension):
         i2c,
         width=128,
         height=64,
-        flip: bool = False,
-        device_address=0x3C,
+        # flip: bool = False,
+        rotation=0,
+        device_address=0x3D,
         brightness=0.8,
         brightness_step=0.1,
     ):
         displayio.release_displays()
-        self.rotation = 180 if flip else 0
+        # self.rotation = 180 if flip else 0
+        self._rotation = rotation
+        self._i2c = i2c
         self._views = views.data
         self._width = width
         self._height = height
@@ -89,8 +92,8 @@ class Oled(Extension):
                             terminalio.FONT,
                             text=view[0],
                             color=0xFFFFFF,
-                            x=view[1],
-                            y=view[2] + DISPLAY_OFFSET,
+                            x=view[1] + DISPLAY_OFFSET_X,
+                            y=view[2] + DISPLAY_OFFSET_Y,
                         )
                     )
                 elif view[4] == OledEntryType.IMG:
@@ -98,8 +101,8 @@ class Oled(Extension):
                         displayio.TileGrid(
                             view[0],
                             pixel_shader=view[0].pixel_shader,
-                            x=view[1],
-                            y=view[2] + DISPLAY_OFFSET,
+                            x=view[1] + DISPLAY_OFFSET_X,
+                            y=view[2] + DISPLAY_OFFSET_Y,
                         )
                     )
         gc.collect()
@@ -116,17 +119,20 @@ class Oled(Extension):
         return
 
     def during_bootup(self, board):
-        print("Starting oled on address: %s", hex(self._device_address))
+        print("Starting oled on address: %s", hex(self._device_address))        
+        print("rotation: %s, width: %s, height: %s" %(self._rotation, self._width, self._height))
         displayio.release_displays()
+        display_bus = displayio.I2CDisplay(self._i2c, device_address=self._device_address)
         # i2c = busio.I2C(board.SCL, board.SDA)
         # self._display = adafruit_displayio_ssd1306.SSD1306(
         self._display = adafruit_displayio_sh1107.SH1107(
-            displayio.I2CDisplay(self.i2c, device_address=self._device_address),
+            display_bus,
             width=self._width,
             height=self._height,
-            rotation=self.rotation,
-            brightness=self._brightness,
+            rotation=self._rotation,
+            display_offset=0
         )
+
         self.render_oled(0)
         return
 
