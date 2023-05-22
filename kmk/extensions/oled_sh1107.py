@@ -10,6 +10,7 @@ import terminalio
 from adafruit_display_text import label
 from kmk.extensions import Extension
 
+
 DISPLAY_OFFSET_X = 2  
 DISPLAY_OFFSET_Y = 4
 
@@ -60,6 +61,7 @@ class Oled(Extension):
         device_address=0x3D,
         brightness=0.8,
         brightness_step=0.1,
+        locks=None
     ):
         displayio.release_displays()
         # self.rotation = 180 if flip else 0
@@ -72,6 +74,10 @@ class Oled(Extension):
         self._device_address = device_address
         self._brightness = brightness
         self._brightness_step = brightness_step
+        self._locks = locks
+        self._background_color = 0x000000
+        self._color = 0xFFFFFF
+        self._CAPS = "cpslck"
         gc.collect()
 
         make_key(
@@ -82,7 +88,7 @@ class Oled(Extension):
         )
 
     def render_oled(self, layer):
-        splash = displayio.Group()
+        splash = displayio.Group()        
 
         for view in self._views:
             if view[3] == layer or view[3] == None:
@@ -105,6 +111,38 @@ class Oled(Extension):
                             y=view[2] + DISPLAY_OFFSET_Y,
                         )
                     )
+        splash.append(
+            label.Label(
+                terminalio.FONT,
+                text="CPSLCK",
+                background_color=self._background_color,
+                color=self._color,
+                x=0 + DISPLAY_OFFSET_X,
+                y=50 + DISPLAY_OFFSET_Y,
+            )
+        )
+
+        # if LockStatus.get_caps_lock():
+        #     splash.append(
+        #         label.Label(
+        #             terminalio.FONT,
+        #             text="CPSLK",
+        #             color=0xFFFFFF,
+        #             x=100 + DISPLAY_OFFSET_X,
+        #             y=50 + DISPLAY_OFFSET_Y,
+        #         )
+        #     )
+        # else:
+        #     splash.append(
+        #         label.Label(
+        #             terminalio.FONT,
+        #             text="cpslk",
+        #             color=0xFFFFFF,
+        #             x=100 + DISPLAY_OFFSET_X,
+        #             y=50 + DISPLAY_OFFSET_Y,
+        #         )
+        #     )
+
         gc.collect()
         self._display.show(splash)
 
@@ -140,9 +178,18 @@ class Oled(Extension):
         if sandbox.active_layers[0] != self._prevLayers:
             self._prevLayers = sandbox.active_layers[0]
             self.updateOLED(sandbox)
+        if self._locks.get_caps_lock() and self._color == 0xffffff:
+            self._background_color = 0xffffff
+            self._color = 0x000000
+            self.updateOLED(sandbox)
+        elif self._locks.get_caps_lock() == False and self._color == 0x000000:
+            self._background_color = 0x000000
+            self._color = 0xffffff
+            self.updateOLED(sandbox)     
         return
 
     def after_matrix_scan(self, sandbox):
+        # print("locks: ", self._locks.get_caps_lock())        
         return
 
     def before_hid_send(self, sandbox):
