@@ -122,14 +122,9 @@ class Touchpad(Module):
                 else:
                     x = (255-self.XREL_LOW)*-1
                 if(self.YREL_HIGH != 255):
-                    y = self.YABS_LOW
+                    y = self.YREL_LOW
                 else:
                     y = (255-self.YREL_LOW)*-1            
-
-            if x:
-                AX.X.move(keyboard, x)
-            if y:
-                AX.Y.move(keyboard, y)
 
             if self.FINGER_COUNT == 1:
                 AX.X.move(keyboard, x)
