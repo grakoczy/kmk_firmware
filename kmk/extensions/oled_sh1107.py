@@ -11,7 +11,7 @@ from adafruit_display_text import label
 from kmk.extensions import Extension
 
 
-DISPLAY_OFFSET_X = 2  
+DISPLAY_OFFSET_X = 4 
 DISPLAY_OFFSET_Y = 4
 
 class OledEntryType:

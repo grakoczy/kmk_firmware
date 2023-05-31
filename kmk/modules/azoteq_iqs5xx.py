@@ -130,25 +130,24 @@ class Touchpad(Module):
                 AX.X.move(keyboard, x)
                 AX.Y.move(keyboard, y)
             if self.FINGER_COUNT == 2:
-                AX.W.move(keyboard, int(y/4))
+                AX.W.move(keyboard, int(y/8))
 
             if ((self.GESTURE0 & 0x01) == 0x01): # test bit 0
-                self.LEFT_BUTTON = 1
+                self.LEFT_BUTTON = True
             else:
-                self.LEFT_BUTTON = 0         
+                self.LEFT_BUTTON = False      
 
             # Determine if the left touchpad button has changed since last polling cycle using xor
             self.LEFT_BUTTON_CHANGE = self.LEFT_BUTTON ^ self.OLD_LEFT_BUTTON
-
             # Don't send button status if there's no change since last time. 
+            self.OLD_LEFT_BUTTON = self.LEFT_BUTTON; # remember button status for next polling cycle
             if self.LEFT_BUTTON_CHANGE:
                 keyboard.pre_process_key(KC.MB_LMB, is_pressed=self.LEFT_BUTTON)
-            self.OLD_LEFT_BUTTON = self.LEFT_BUTTON; # remember button status for next polling cycle
 
             if ((self.GESTURE1 & 0x01) == 0x01): # test bit 0
-                self.RIGHT_BUTTON = 1
+                self.RIGHT_BUTTON = True
             else:
-                self.RIGHT_BUTTON = 0
+                self.RIGHT_BUTTON = False
 
             # Determine if the left touchpad button has changed since last polling cycle using xor
             self.RIGHT_BUTTON_CHANGE = self.RIGHT_BUTTON ^ self.OLD_RIGHT_BUTTON
@@ -165,6 +164,10 @@ class Touchpad(Module):
         return
 
     def after_hid_send(self, keyboard):
+        if self.LEFT_BUTTON:
+            keyboard.pre_process_key(KC.MB_LMB, is_pressed=False)
+        if self.RIGHT_BUTTON:
+            keyboard.pre_process_key(KC.MB_RMB, is_pressed=False)   
         return
 
     def on_powersave_enable(self, keyboard):
