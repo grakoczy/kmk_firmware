@@ -130,7 +130,7 @@ class Touchpad(Module):
                 AX.X.move(keyboard, x)
                 AX.Y.move(keyboard, y)
             if self.FINGER_COUNT == 2:
-                AX.W.move(keyboard, int(y/8))
+                AX.W.move(keyboard, -int(y/8))
 
             if ((self.GESTURE0 & 0x01) == 0x01): # test bit 0
                 self.LEFT_BUTTON = True

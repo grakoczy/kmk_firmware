@@ -16,8 +16,8 @@ class SpeakerType(Extension):
         try:
             self.data = open("click-button.wav", "rb")
             self.click = audiocore.WaveFile(self.data)
-            # self.intro_data = open("swoosh-5-47321.wav", "rb")
-            # self.intro = audiocore.WaveFile(self.intro_data)
+            self.intro_data = open("tada.wav", "rb")
+            self.intro = audiocore.WaveFile(self.intro_data)
             self.speaker = audiopwmio.PWMAudioOut(pin)
         except Exception as e:
             print(e)
@@ -27,7 +27,9 @@ class SpeakerType(Extension):
         self.OFF = 0
         self.ON = 2**15
         self.SOFT = 2**12
-        self.speaker.play(self.click)
+        self.speaker.play(self.intro)
+        while self.speaker.playing:
+            pass
 
     def on_runtime_enable(self, keyboard):
         return
