@@ -25,8 +25,10 @@ class Touchpad(Module):
     def __init__(
         self,
         i2c,
-        rdy_pin=0,
-        reset_pin=0,
+        rdy_pin = 0,
+        reset_pin = 0,
+        click = True,
+        click_max_y = 100,
     ):
         self.I2C_ADDRESS = const(0x74)
 
@@ -59,7 +61,8 @@ class Touchpad(Module):
         self._rst_n = digitalio.DigitalInOut(reset_pin) # touchpad reset, active low
         self._rdy.direction = digitalio.Direction.INPUT
         self._rst_n.direction = digitalio.Direction.OUTPUT        
-
+        self._click = click
+        self._click_max_y = click_max_y
         self.polling_interval = 20
 
         self.register = bytearray([0x00, 0x0d])
@@ -116,6 +119,8 @@ class Touchpad(Module):
 
             x = 0
             y = 0
+            abs_y = (self.YABS_HIGH << 8) | self.YABS_LOW
+            
             if ((self.XREL_LOW != 0x00) or (self.YREL_LOW != 0x00)):            
                 if(self.XREL_HIGH != 255):
                     x = self.XREL_LOW
@@ -132,7 +137,7 @@ class Touchpad(Module):
             if self.FINGER_COUNT == 2:
                 AX.W.move(keyboard, -int(y/8))
 
-            if ((self.GESTURE0 & 0x01) == 0x01): # test bit 0
+            if ((self.GESTURE0 & 0x01) == 0x01) and (768-abs_y)<self._click_max_y : # test bit 0
                 self.LEFT_BUTTON = True
             else:
                 self.LEFT_BUTTON = False      
@@ -141,7 +146,7 @@ class Touchpad(Module):
             self.LEFT_BUTTON_CHANGE = self.LEFT_BUTTON ^ self.OLD_LEFT_BUTTON
             # Don't send button status if there's no change since last time. 
             self.OLD_LEFT_BUTTON = self.LEFT_BUTTON; # remember button status for next polling cycle
-            if self.LEFT_BUTTON_CHANGE:
+            if self.LEFT_BUTTON_CHANGE and self._click:
                 keyboard.pre_process_key(KC.MB_LMB, is_pressed=self.LEFT_BUTTON)
 
             if ((self.GESTURE1 & 0x01) == 0x01): # test bit 0
@@ -152,7 +157,7 @@ class Touchpad(Module):
             # Determine if the left touchpad button has changed since last polling cycle using xor
             self.RIGHT_BUTTON_CHANGE = self.RIGHT_BUTTON ^ self.OLD_RIGHT_BUTTON
             # Don't send button status if there's no change since last time. 
-            if self.RIGHT_BUTTON_CHANGE:
+            if self.RIGHT_BUTTON_CHANGE and self._click:
                 keyboard.pre_process_key(KC.MB_RMB, is_pressed=self.RIGHT_BUTTON)        
             self.OLD_RIGHT_BUTTON = self.RIGHT_BUTTON; # remember button status for next polling cycle
 
@@ -164,10 +169,11 @@ class Touchpad(Module):
         return
 
     def after_hid_send(self, keyboard):
-        if self.LEFT_BUTTON:
-            keyboard.pre_process_key(KC.MB_LMB, is_pressed=False)
-        if self.RIGHT_BUTTON:
-            keyboard.pre_process_key(KC.MB_RMB, is_pressed=False)   
+        if self._click:
+            if self.LEFT_BUTTON:
+                keyboard.pre_process_key(KC.MB_LMB, is_pressed=False)
+            if self.RIGHT_BUTTON:
+                keyboard.pre_process_key(KC.MB_RMB, is_pressed=False)   
         return
 
     def on_powersave_enable(self, keyboard):
